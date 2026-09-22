@@ -1,0 +1,59 @@
+<mat-toolbar color="primary">
+    <span>TaskFlow — Mis tareas</span>
+    <span class="spacer"></span>
+    <button mat-button routerLink="/new-task">
+        <mat-icon>add</mat-icon>
+        Nueva tarea
+    </button>
+    <button mat-button (click)="logout()">
+        <mat-icon>logout</mat-icon>
+        Cerrar sesión
+    </button>
+</mat-toolbar>
+
+<div class="tasks-page">
+    @if (loading()) {
+        <div class="state-container">
+            <mat-spinner diameter="40"></mat-spinner>
+        </div>
+    } @else if (tasks().length === 0) {
+        <div class="state-container empty">
+            <mat-icon>inbox</mat-icon>
+            <p>No tienes tareas todavía.</p>
+            <button mat-flat-button color="primary" routerLink="/new-task">Crear mi primera tarea</button>
+        </div>
+    } @else {
+        <div class="tasks-list">
+            @for (task of tasks(); track task.id) {
+                <mat-card class="task-card">
+                    <mat-card-content>
+                        <div class="task-header">
+                            <h3>{{ task.title }}</h3>
+                            <mat-chip [class]="'priority-' + task.priorityLevel">
+                                {{ priorityLabel(task.priorityLevel) }}
+                            </mat-chip>
+                        </div>
+
+                        @if (task.notes) {
+                            <p class="task-notes">{{ task.notes }}</p>
+                        }
+
+                        <p class="task-date">{{ task.createdAt | date: 'dd/MM/yyyy HH:mm' }}</p>
+                    </mat-card-content>
+
+                    <mat-card-actions align="end">
+                        <button
+                                mat-icon-button
+                                color="warn"
+                                [disabled]="deletingId() === task.id"
+                                (click)="deleteTask(task)"
+                                aria-label="Eliminar tarea"
+                        >
+                            <mat-icon>delete</mat-icon>
+                        </button>
+                    </mat-card-actions>
+                </mat-card>
+            }
+        </div>
+    }
+</div>
