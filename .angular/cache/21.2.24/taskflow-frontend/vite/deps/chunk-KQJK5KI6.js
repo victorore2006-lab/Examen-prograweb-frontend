@@ -1,19 +1,21 @@
 import {
+  ObserversModule,
   _IdGenerator,
   coerceBooleanProperty
-} from "./chunk-CSAGQ6XA.js";
+} from "./chunk-U6BPWAK5.js";
 import {
   _animationsDisabled
-} from "./chunk-WZLKRTMI.js";
+} from "./chunk-RJID4QBF.js";
 import {
   Platform
-} from "./chunk-UWL3PLIL.js";
+} from "./chunk-DNDUMR7B.js";
 import {
+  BidiModule,
   Directionality
 } from "./chunk-KKB42ZF4.js";
 import {
   NgTemplateOutlet
-} from "./chunk-TOJQCRGT.js";
+} from "./chunk-H3HIRSS3.js";
 import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
@@ -25,6 +27,7 @@ import {
   Injectable,
   InjectionToken,
   Input,
+  NgModule,
   NgZone,
   Renderer2,
   RendererFactory2,
@@ -50,6 +53,8 @@ import {
   ɵɵdefineComponent,
   ɵɵdefineDirective,
   ɵɵdefineInjectable,
+  ɵɵdefineInjector,
+  ɵɵdefineNgModule,
   ɵɵdomElement,
   ɵɵdomElementEnd,
   ɵɵdomElementStart,
@@ -1486,6 +1491,30 @@ var MatFormField = class _MatFormField {
   });
 })();
 
+// node_modules/@angular/material/fesm2022/form-field.mjs
+var MatFormFieldModule = class _MatFormFieldModule {
+  static ɵfac = function MatFormFieldModule_Factory(__ngFactoryType__) {
+    return new (__ngFactoryType__ || _MatFormFieldModule)();
+  };
+  static ɵmod = ɵɵdefineNgModule({
+    type: _MatFormFieldModule,
+    imports: [ObserversModule, MatFormField, MatLabel, MatError, MatHint, MatPrefix, MatSuffix],
+    exports: [MatFormField, MatLabel, MatHint, MatError, MatPrefix, MatSuffix, BidiModule]
+  });
+  static ɵinj = ɵɵdefineInjector({
+    imports: [ObserversModule, MatFormField, BidiModule]
+  });
+};
+(() => {
+  (typeof ngDevMode === "undefined" || ngDevMode) && setClassMetadata(MatFormFieldModule, [{
+    type: NgModule,
+    args: [{
+      imports: [ObserversModule, MatFormField, MatLabel, MatError, MatHint, MatPrefix, MatSuffix],
+      exports: [MatFormField, MatLabel, MatHint, MatError, MatPrefix, MatSuffix, BidiModule]
+    }]
+  }], null, null);
+})();
+
 export {
   MatLabel,
   MAT_ERROR,
@@ -1501,6 +1530,7 @@ export {
   getMatFormFieldMissingControlError,
   MAT_FORM_FIELD,
   MAT_FORM_FIELD_DEFAULT_OPTIONS,
-  MatFormField
+  MatFormField,
+  MatFormFieldModule
 };
-//# sourceMappingURL=chunk-N6MVTFFV.js.map
+//# sourceMappingURL=chunk-KQJK5KI6.js.map

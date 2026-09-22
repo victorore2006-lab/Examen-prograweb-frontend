@@ -1,29 +1,23 @@
 import {
-  _getEventTarget,
-  _getFocusedElementPierceShadowDom,
-  _getShadowRoot,
-  normalizePassiveListenerOptions
-} from "./chunk-E5FNGB6R.js";
-import {
   _VisuallyHiddenLoader,
   _setInnerHtml
 } from "./chunk-WE737E2B.js";
 import {
-  DomSanitizer
-} from "./chunk-O4PJ36N5.js";
-import {
   BreakpointObserver
-} from "./chunk-WZLKRTMI.js";
+} from "./chunk-RJID4QBF.js";
 import {
-  _CdkPrivateStyleLoader
-} from "./chunk-HO4QMAMZ.js";
+  DomSanitizer
+} from "./chunk-B46Z24ZR.js";
 import {
   coerceElement,
   coerceNumberProperty
 } from "./chunk-NSOVN3G6.js";
 import {
+  _CdkPrivateStyleLoader
+} from "./chunk-HO4QMAMZ.js";
+import {
   Platform
-} from "./chunk-UWL3PLIL.js";
+} from "./chunk-DNDUMR7B.js";
 import {
   APP_ID,
   DOCUMENT,
@@ -41,11 +35,8 @@ import {
   RendererFactory2,
   afterNextRender,
   booleanAttribute,
-  effect,
   inject,
-  isSignal,
   setClassMetadata,
-  signal,
   ɵɵNgOnChangesFeature,
   ɵɵdefineDirective,
   ɵɵdefineInjectable,
@@ -69,34 +60,269 @@ import {
   tap
 } from "./chunk-RSS3ODKE.js";
 import {
-  __spreadProps,
   __spreadValues
 } from "./chunk-WDMUDEB6.js";
 
-// node_modules/@angular/cdk/fesm2022/_keycodes-chunk.mjs
-var BACKSPACE = 8;
-var TAB = 9;
-var ENTER = 13;
-var SHIFT = 16;
-var CONTROL = 17;
-var ALT = 18;
-var ESCAPE = 27;
-var SPACE = 32;
-var PAGE_UP = 33;
-var PAGE_DOWN = 34;
-var END = 35;
-var HOME = 36;
-var LEFT_ARROW = 37;
-var UP_ARROW = 38;
-var RIGHT_ARROW = 39;
-var DOWN_ARROW = 40;
-var DELETE = 46;
-var ZERO = 48;
-var NINE = 57;
-var A = 65;
-var Z = 90;
-var META = 91;
-var MAC_META = 224;
+// node_modules/@angular/cdk/fesm2022/observers.mjs
+function shouldIgnoreRecord(record) {
+  if (record.type === "characterData" && record.target instanceof Comment) {
+    return true;
+  }
+  if (record.type === "childList") {
+    for (let i = 0; i < record.addedNodes.length; i++) {
+      if (!(record.addedNodes[i] instanceof Comment)) {
+        return false;
+      }
+    }
+    for (let i = 0; i < record.removedNodes.length; i++) {
+      if (!(record.removedNodes[i] instanceof Comment)) {
+        return false;
+      }
+    }
+    return true;
+  }
+  return false;
+}
+var MutationObserverFactory = class _MutationObserverFactory {
+  create(callback) {
+    return typeof MutationObserver === "undefined" ? null : new MutationObserver(callback);
+  }
+  static ɵfac = function MutationObserverFactory_Factory(__ngFactoryType__) {
+    return new (__ngFactoryType__ || _MutationObserverFactory)();
+  };
+  static ɵprov = ɵɵdefineInjectable({
+    token: _MutationObserverFactory,
+    factory: _MutationObserverFactory.ɵfac,
+    providedIn: "root"
+  });
+};
+(() => {
+  (typeof ngDevMode === "undefined" || ngDevMode) && setClassMetadata(MutationObserverFactory, [{
+    type: Injectable,
+    args: [{
+      providedIn: "root"
+    }]
+  }], null, null);
+})();
+var ContentObserver = class _ContentObserver {
+  _mutationObserverFactory = inject(MutationObserverFactory);
+  _observedElements = /* @__PURE__ */ new Map();
+  _ngZone = inject(NgZone);
+  constructor() {
+  }
+  ngOnDestroy() {
+    this._observedElements.forEach((_, element) => this._cleanupObserver(element));
+  }
+  observe(elementOrRef) {
+    const element = coerceElement(elementOrRef);
+    return new Observable((observer) => {
+      const stream = this._observeElement(element);
+      const subscription = stream.pipe(map((records) => records.filter((record) => !shouldIgnoreRecord(record))), filter((records) => !!records.length)).subscribe((records) => {
+        this._ngZone.run(() => {
+          observer.next(records);
+        });
+      });
+      return () => {
+        subscription.unsubscribe();
+        this._unobserveElement(element);
+      };
+    });
+  }
+  _observeElement(element) {
+    return this._ngZone.runOutsideAngular(() => {
+      if (!this._observedElements.has(element)) {
+        const stream = new Subject();
+        const observer = this._mutationObserverFactory.create((mutations) => stream.next(mutations));
+        if (observer) {
+          observer.observe(element, {
+            characterData: true,
+            childList: true,
+            subtree: true
+          });
+        }
+        this._observedElements.set(element, {
+          observer,
+          stream,
+          count: 1
+        });
+      } else {
+        this._observedElements.get(element).count++;
+      }
+      return this._observedElements.get(element).stream;
+    });
+  }
+  _unobserveElement(element) {
+    if (this._observedElements.has(element)) {
+      this._observedElements.get(element).count--;
+      if (!this._observedElements.get(element).count) {
+        this._cleanupObserver(element);
+      }
+    }
+  }
+  _cleanupObserver(element) {
+    if (this._observedElements.has(element)) {
+      const {
+        observer,
+        stream
+      } = this._observedElements.get(element);
+      if (observer) {
+        observer.disconnect();
+      }
+      stream.complete();
+      this._observedElements.delete(element);
+    }
+  }
+  static ɵfac = function ContentObserver_Factory(__ngFactoryType__) {
+    return new (__ngFactoryType__ || _ContentObserver)();
+  };
+  static ɵprov = ɵɵdefineInjectable({
+    token: _ContentObserver,
+    factory: _ContentObserver.ɵfac,
+    providedIn: "root"
+  });
+};
+(() => {
+  (typeof ngDevMode === "undefined" || ngDevMode) && setClassMetadata(ContentObserver, [{
+    type: Injectable,
+    args: [{
+      providedIn: "root"
+    }]
+  }], () => [], null);
+})();
+var CdkObserveContent = class _CdkObserveContent {
+  _contentObserver = inject(ContentObserver);
+  _elementRef = inject(ElementRef);
+  event = new EventEmitter();
+  get disabled() {
+    return this._disabled;
+  }
+  set disabled(value) {
+    this._disabled = value;
+    this._disabled ? this._unsubscribe() : this._subscribe();
+  }
+  _disabled = false;
+  get debounce() {
+    return this._debounce;
+  }
+  set debounce(value) {
+    this._debounce = coerceNumberProperty(value);
+    this._subscribe();
+  }
+  _debounce;
+  _currentSubscription = null;
+  constructor() {
+  }
+  ngAfterContentInit() {
+    if (!this._currentSubscription && !this.disabled) {
+      this._subscribe();
+    }
+  }
+  ngOnDestroy() {
+    this._unsubscribe();
+  }
+  _subscribe() {
+    this._unsubscribe();
+    const stream = this._contentObserver.observe(this._elementRef);
+    this._currentSubscription = (this.debounce ? stream.pipe(debounceTime(this.debounce)) : stream).subscribe(this.event);
+  }
+  _unsubscribe() {
+    this._currentSubscription?.unsubscribe();
+  }
+  static ɵfac = function CdkObserveContent_Factory(__ngFactoryType__) {
+    return new (__ngFactoryType__ || _CdkObserveContent)();
+  };
+  static ɵdir = ɵɵdefineDirective({
+    type: _CdkObserveContent,
+    selectors: [["", "cdkObserveContent", ""]],
+    inputs: {
+      disabled: [2, "cdkObserveContentDisabled", "disabled", booleanAttribute],
+      debounce: "debounce"
+    },
+    outputs: {
+      event: "cdkObserveContent"
+    },
+    exportAs: ["cdkObserveContent"]
+  });
+};
+(() => {
+  (typeof ngDevMode === "undefined" || ngDevMode) && setClassMetadata(CdkObserveContent, [{
+    type: Directive,
+    args: [{
+      selector: "[cdkObserveContent]",
+      exportAs: "cdkObserveContent"
+    }]
+  }], () => [], {
+    event: [{
+      type: Output,
+      args: ["cdkObserveContent"]
+    }],
+    disabled: [{
+      type: Input,
+      args: [{
+        alias: "cdkObserveContentDisabled",
+        transform: booleanAttribute
+      }]
+    }],
+    debounce: [{
+      type: Input
+    }]
+  });
+})();
+var ObserversModule = class _ObserversModule {
+  static ɵfac = function ObserversModule_Factory(__ngFactoryType__) {
+    return new (__ngFactoryType__ || _ObserversModule)();
+  };
+  static ɵmod = ɵɵdefineNgModule({
+    type: _ObserversModule,
+    imports: [CdkObserveContent],
+    exports: [CdkObserveContent]
+  });
+  static ɵinj = ɵɵdefineInjector({
+    providers: [MutationObserverFactory]
+  });
+};
+(() => {
+  (typeof ngDevMode === "undefined" || ngDevMode) && setClassMetadata(ObserversModule, [{
+    type: NgModule,
+    args: [{
+      imports: [CdkObserveContent],
+      exports: [CdkObserveContent],
+      providers: [MutationObserverFactory]
+    }]
+  }], null, null);
+})();
+
+// node_modules/@angular/cdk/fesm2022/_id-generator-chunk.mjs
+var counters = {};
+var _IdGenerator = class __IdGenerator {
+  _appId = inject(APP_ID);
+  static _infix = `a${Math.floor(Math.random() * 1e5).toString()}`;
+  getId(prefix, randomize = false) {
+    if (this._appId !== "ng") {
+      prefix += this._appId;
+    }
+    if (!counters.hasOwnProperty(prefix)) {
+      counters[prefix] = 0;
+    }
+    return `${prefix}${randomize ? __IdGenerator._infix + "-" : ""}${counters[prefix]++}`;
+  }
+  static ɵfac = function _IdGenerator_Factory(__ngFactoryType__) {
+    return new (__ngFactoryType__ || __IdGenerator)();
+  };
+  static ɵprov = ɵɵdefineInjectable({
+    token: __IdGenerator,
+    factory: __IdGenerator.ɵfac,
+    providedIn: "root"
+  });
+};
+(() => {
+  (typeof ngDevMode === "undefined" || ngDevMode) && setClassMetadata(_IdGenerator, [{
+    type: Injectable,
+    args: [{
+      providedIn: "root"
+    }]
+  }], null, null);
+})();
 
 // node_modules/@angular/cdk/fesm2022/_fake-event-detection-chunk.mjs
 function isFakeMousedownFromScreenReader(event) {
@@ -105,6 +331,69 @@ function isFakeMousedownFromScreenReader(event) {
 function isFakeTouchstartFromScreenReader(event) {
   const touch = event.touches && event.touches[0] || event.changedTouches && event.changedTouches[0];
   return !!touch && touch.identifier === -1 && (touch.radiusX == null || touch.radiusX === 1) && (touch.radiusY == null || touch.radiusY === 1);
+}
+
+// node_modules/@angular/cdk/fesm2022/_keycodes-chunk.mjs
+var SHIFT = 16;
+var CONTROL = 17;
+var ALT = 18;
+var ZERO = 48;
+var NINE = 57;
+var A = 65;
+var Z = 90;
+var META = 91;
+var MAC_META = 224;
+
+// node_modules/@angular/cdk/fesm2022/_shadow-dom-chunk.mjs
+var shadowDomIsSupported;
+function _supportsShadowDom() {
+  if (shadowDomIsSupported == null) {
+    const head = typeof document !== "undefined" ? document.head : null;
+    shadowDomIsSupported = !!(head && (head.createShadowRoot || head.attachShadow));
+  }
+  return shadowDomIsSupported;
+}
+function _getShadowRoot(element) {
+  if (_supportsShadowDom()) {
+    const rootNode = element.getRootNode ? element.getRootNode() : null;
+    if (typeof ShadowRoot !== "undefined" && ShadowRoot && rootNode instanceof ShadowRoot) {
+      return rootNode;
+    }
+  }
+  return null;
+}
+function _getFocusedElementPierceShadowDom() {
+  let activeElement = typeof document !== "undefined" && document ? document.activeElement : null;
+  while (activeElement && activeElement.shadowRoot) {
+    const newActiveElement = activeElement.shadowRoot.activeElement;
+    if (newActiveElement === activeElement) {
+      break;
+    } else {
+      activeElement = newActiveElement;
+    }
+  }
+  return activeElement;
+}
+function _getEventTarget(event) {
+  return event.composedPath ? event.composedPath()[0] : event.target;
+}
+
+// node_modules/@angular/cdk/fesm2022/_passive-listeners-chunk.mjs
+var supportsPassiveEvents;
+function supportsPassiveEventListeners() {
+  if (supportsPassiveEvents == null && typeof window !== "undefined") {
+    try {
+      window.addEventListener("test", null, Object.defineProperty({}, "passive", {
+        get: () => supportsPassiveEvents = true
+      }));
+    } finally {
+      supportsPassiveEvents = supportsPassiveEvents || false;
+    }
+  }
+  return supportsPassiveEvents;
+}
+function normalizePassiveListenerOptions(options) {
+  return supportsPassiveEventListeners() ? options : !!options.capture;
 }
 
 // node_modules/@angular/cdk/fesm2022/_focus-monitor-chunk.mjs
@@ -154,7 +443,7 @@ var InputModalityDetector = class _InputModalityDetector {
   };
   constructor() {
     const ngZone = inject(NgZone);
-    const document = inject(DOCUMENT);
+    const document2 = inject(DOCUMENT);
     const options = inject(INPUT_MODALITY_DETECTOR_OPTIONS, {
       optional: true
     });
@@ -164,7 +453,7 @@ var InputModalityDetector = class _InputModalityDetector {
     if (this._platform.isBrowser) {
       const renderer = inject(RendererFactory2).createRenderer(null, null);
       this._listenerCleanups = ngZone.runOutsideAngular(() => {
-        return [renderer.listen(document, "keydown", this._onKeydown, modalityEventListenerOptions), renderer.listen(document, "mousedown", this._onMousedown, modalityEventListenerOptions), renderer.listen(document, "touchstart", this._onTouchstart, modalityEventListenerOptions)];
+        return [renderer.listen(document2, "keydown", this._onKeydown, modalityEventListenerOptions), renderer.listen(document2, "mousedown", this._onMousedown, modalityEventListenerOptions), renderer.listen(document2, "touchstart", this._onTouchstart, modalityEventListenerOptions)];
       });
     }
   }
@@ -481,235 +770,6 @@ var CdkMonitorFocus = class _CdkMonitorFocus {
       type: Output
     }]
   });
-})();
-
-// node_modules/@angular/cdk/fesm2022/observers.mjs
-function shouldIgnoreRecord(record) {
-  if (record.type === "characterData" && record.target instanceof Comment) {
-    return true;
-  }
-  if (record.type === "childList") {
-    for (let i = 0; i < record.addedNodes.length; i++) {
-      if (!(record.addedNodes[i] instanceof Comment)) {
-        return false;
-      }
-    }
-    for (let i = 0; i < record.removedNodes.length; i++) {
-      if (!(record.removedNodes[i] instanceof Comment)) {
-        return false;
-      }
-    }
-    return true;
-  }
-  return false;
-}
-var MutationObserverFactory = class _MutationObserverFactory {
-  create(callback) {
-    return typeof MutationObserver === "undefined" ? null : new MutationObserver(callback);
-  }
-  static ɵfac = function MutationObserverFactory_Factory(__ngFactoryType__) {
-    return new (__ngFactoryType__ || _MutationObserverFactory)();
-  };
-  static ɵprov = ɵɵdefineInjectable({
-    token: _MutationObserverFactory,
-    factory: _MutationObserverFactory.ɵfac,
-    providedIn: "root"
-  });
-};
-(() => {
-  (typeof ngDevMode === "undefined" || ngDevMode) && setClassMetadata(MutationObserverFactory, [{
-    type: Injectable,
-    args: [{
-      providedIn: "root"
-    }]
-  }], null, null);
-})();
-var ContentObserver = class _ContentObserver {
-  _mutationObserverFactory = inject(MutationObserverFactory);
-  _observedElements = /* @__PURE__ */ new Map();
-  _ngZone = inject(NgZone);
-  constructor() {
-  }
-  ngOnDestroy() {
-    this._observedElements.forEach((_, element) => this._cleanupObserver(element));
-  }
-  observe(elementOrRef) {
-    const element = coerceElement(elementOrRef);
-    return new Observable((observer) => {
-      const stream = this._observeElement(element);
-      const subscription = stream.pipe(map((records) => records.filter((record) => !shouldIgnoreRecord(record))), filter((records) => !!records.length)).subscribe((records) => {
-        this._ngZone.run(() => {
-          observer.next(records);
-        });
-      });
-      return () => {
-        subscription.unsubscribe();
-        this._unobserveElement(element);
-      };
-    });
-  }
-  _observeElement(element) {
-    return this._ngZone.runOutsideAngular(() => {
-      if (!this._observedElements.has(element)) {
-        const stream = new Subject();
-        const observer = this._mutationObserverFactory.create((mutations) => stream.next(mutations));
-        if (observer) {
-          observer.observe(element, {
-            characterData: true,
-            childList: true,
-            subtree: true
-          });
-        }
-        this._observedElements.set(element, {
-          observer,
-          stream,
-          count: 1
-        });
-      } else {
-        this._observedElements.get(element).count++;
-      }
-      return this._observedElements.get(element).stream;
-    });
-  }
-  _unobserveElement(element) {
-    if (this._observedElements.has(element)) {
-      this._observedElements.get(element).count--;
-      if (!this._observedElements.get(element).count) {
-        this._cleanupObserver(element);
-      }
-    }
-  }
-  _cleanupObserver(element) {
-    if (this._observedElements.has(element)) {
-      const {
-        observer,
-        stream
-      } = this._observedElements.get(element);
-      if (observer) {
-        observer.disconnect();
-      }
-      stream.complete();
-      this._observedElements.delete(element);
-    }
-  }
-  static ɵfac = function ContentObserver_Factory(__ngFactoryType__) {
-    return new (__ngFactoryType__ || _ContentObserver)();
-  };
-  static ɵprov = ɵɵdefineInjectable({
-    token: _ContentObserver,
-    factory: _ContentObserver.ɵfac,
-    providedIn: "root"
-  });
-};
-(() => {
-  (typeof ngDevMode === "undefined" || ngDevMode) && setClassMetadata(ContentObserver, [{
-    type: Injectable,
-    args: [{
-      providedIn: "root"
-    }]
-  }], () => [], null);
-})();
-var CdkObserveContent = class _CdkObserveContent {
-  _contentObserver = inject(ContentObserver);
-  _elementRef = inject(ElementRef);
-  event = new EventEmitter();
-  get disabled() {
-    return this._disabled;
-  }
-  set disabled(value) {
-    this._disabled = value;
-    this._disabled ? this._unsubscribe() : this._subscribe();
-  }
-  _disabled = false;
-  get debounce() {
-    return this._debounce;
-  }
-  set debounce(value) {
-    this._debounce = coerceNumberProperty(value);
-    this._subscribe();
-  }
-  _debounce;
-  _currentSubscription = null;
-  constructor() {
-  }
-  ngAfterContentInit() {
-    if (!this._currentSubscription && !this.disabled) {
-      this._subscribe();
-    }
-  }
-  ngOnDestroy() {
-    this._unsubscribe();
-  }
-  _subscribe() {
-    this._unsubscribe();
-    const stream = this._contentObserver.observe(this._elementRef);
-    this._currentSubscription = (this.debounce ? stream.pipe(debounceTime(this.debounce)) : stream).subscribe(this.event);
-  }
-  _unsubscribe() {
-    this._currentSubscription?.unsubscribe();
-  }
-  static ɵfac = function CdkObserveContent_Factory(__ngFactoryType__) {
-    return new (__ngFactoryType__ || _CdkObserveContent)();
-  };
-  static ɵdir = ɵɵdefineDirective({
-    type: _CdkObserveContent,
-    selectors: [["", "cdkObserveContent", ""]],
-    inputs: {
-      disabled: [2, "cdkObserveContentDisabled", "disabled", booleanAttribute],
-      debounce: "debounce"
-    },
-    outputs: {
-      event: "cdkObserveContent"
-    },
-    exportAs: ["cdkObserveContent"]
-  });
-};
-(() => {
-  (typeof ngDevMode === "undefined" || ngDevMode) && setClassMetadata(CdkObserveContent, [{
-    type: Directive,
-    args: [{
-      selector: "[cdkObserveContent]",
-      exportAs: "cdkObserveContent"
-    }]
-  }], () => [], {
-    event: [{
-      type: Output,
-      args: ["cdkObserveContent"]
-    }],
-    disabled: [{
-      type: Input,
-      args: [{
-        alias: "cdkObserveContentDisabled",
-        transform: booleanAttribute
-      }]
-    }],
-    debounce: [{
-      type: Input
-    }]
-  });
-})();
-var ObserversModule = class _ObserversModule {
-  static ɵfac = function ObserversModule_Factory(__ngFactoryType__) {
-    return new (__ngFactoryType__ || _ObserversModule)();
-  };
-  static ɵmod = ɵɵdefineNgModule({
-    type: _ObserversModule,
-    imports: [CdkObserveContent],
-    exports: [CdkObserveContent]
-  });
-  static ɵinj = ɵɵdefineInjector({
-    providers: [MutationObserverFactory]
-  });
-};
-(() => {
-  (typeof ngDevMode === "undefined" || ngDevMode) && setClassMetadata(ObserversModule, [{
-    type: NgModule,
-    args: [{
-      imports: [CdkObserveContent],
-      exports: [CdkObserveContent],
-      providers: [MutationObserverFactory]
-    }]
-  }], null, null);
 })();
 
 // node_modules/@angular/cdk/fesm2022/_a11y-module-chunk.mjs
@@ -1431,14 +1491,6 @@ var A11yModule = class _A11yModule {
   }], () => [], null);
 })();
 
-// node_modules/@angular/cdk/fesm2022/keycodes.mjs
-function hasModifierKey(event, ...modifiers) {
-  if (modifiers.length) {
-    return modifiers.some((modifier) => event[modifier]);
-  }
-  return event.altKey || event.shiftKey || event.ctrlKey || event.metaKey;
-}
-
 // node_modules/@angular/cdk/fesm2022/_typeahead-chunk.mjs
 var DEFAULT_TYPEAHEAD_DEBOUNCE_INTERVAL_MS = 200;
 var Typeahead = class {
@@ -1499,330 +1551,6 @@ var Typeahead = class {
     });
   }
 };
-
-// node_modules/@angular/cdk/fesm2022/_list-key-manager-chunk.mjs
-var ListKeyManager = class {
-  _items;
-  _activeItemIndex = signal(-1, ...ngDevMode ? [{
-    debugName: "_activeItemIndex"
-  }] : []);
-  _activeItem = signal(null, ...ngDevMode ? [{
-    debugName: "_activeItem"
-  }] : []);
-  _wrap = false;
-  _typeaheadSubscription = Subscription.EMPTY;
-  _itemChangesSubscription;
-  _vertical = true;
-  _horizontal = null;
-  _allowedModifierKeys = [];
-  _homeAndEnd = false;
-  _pageUpAndDown = {
-    enabled: false,
-    delta: 10
-  };
-  _effectRef;
-  _typeahead;
-  _skipPredicateFn = (item) => item.disabled;
-  constructor(_items, injector) {
-    this._items = _items;
-    if (_items instanceof QueryList) {
-      this._itemChangesSubscription = _items.changes.subscribe((newItems) => this._itemsChanged(newItems.toArray()));
-    } else if (isSignal(_items)) {
-      if (!injector && (typeof ngDevMode === "undefined" || ngDevMode)) {
-        throw new Error("ListKeyManager constructed with a signal must receive an injector");
-      }
-      this._effectRef = effect(() => this._itemsChanged(_items()), __spreadProps(__spreadValues({}, ngDevMode ? {
-        debugName: "_effectRef"
-      } : {}), {
-        injector
-      }));
-    }
-  }
-  tabOut = new Subject();
-  change = new Subject();
-  skipPredicate(predicate) {
-    this._skipPredicateFn = predicate;
-    return this;
-  }
-  withWrap(shouldWrap = true) {
-    this._wrap = shouldWrap;
-    return this;
-  }
-  withVerticalOrientation(enabled = true) {
-    this._vertical = enabled;
-    return this;
-  }
-  withHorizontalOrientation(direction) {
-    this._horizontal = direction;
-    return this;
-  }
-  withAllowedModifierKeys(keys) {
-    this._allowedModifierKeys = keys;
-    return this;
-  }
-  withTypeAhead(debounceInterval = 200) {
-    if (typeof ngDevMode === "undefined" || ngDevMode) {
-      const items2 = this._getItemsArray();
-      if (items2.length > 0 && items2.some((item) => typeof item.getLabel !== "function")) {
-        throw Error("ListKeyManager items in typeahead mode must implement the `getLabel` method.");
-      }
-    }
-    this._typeaheadSubscription.unsubscribe();
-    const items = this._getItemsArray();
-    this._typeahead = new Typeahead(items, {
-      debounceInterval: typeof debounceInterval === "number" ? debounceInterval : void 0,
-      skipPredicate: (item) => this._skipPredicateFn(item)
-    });
-    this._typeaheadSubscription = this._typeahead.selectedItem.subscribe((item) => {
-      this.setActiveItem(item);
-    });
-    return this;
-  }
-  cancelTypeahead() {
-    this._typeahead?.reset();
-    return this;
-  }
-  withHomeAndEnd(enabled = true) {
-    this._homeAndEnd = enabled;
-    return this;
-  }
-  withPageUpDown(enabled = true, delta = 10) {
-    this._pageUpAndDown = {
-      enabled,
-      delta
-    };
-    return this;
-  }
-  setActiveItem(item) {
-    const previousActiveItem = this._activeItem();
-    this.updateActiveItem(item);
-    if (this._activeItem() !== previousActiveItem) {
-      this.change.next(this._activeItemIndex());
-    }
-  }
-  onKeydown(event) {
-    const keyCode = event.keyCode;
-    const modifiers = ["altKey", "ctrlKey", "metaKey", "shiftKey"];
-    const isModifierAllowed = modifiers.every((modifier) => {
-      return !event[modifier] || this._allowedModifierKeys.indexOf(modifier) > -1;
-    });
-    switch (keyCode) {
-      case TAB:
-        this.tabOut.next();
-        return;
-      case DOWN_ARROW:
-        if (this._vertical && isModifierAllowed) {
-          this.setNextItemActive();
-          break;
-        } else {
-          return;
-        }
-      case UP_ARROW:
-        if (this._vertical && isModifierAllowed) {
-          this.setPreviousItemActive();
-          break;
-        } else {
-          return;
-        }
-      case RIGHT_ARROW:
-        if (this._horizontal && isModifierAllowed) {
-          this._horizontal === "rtl" ? this.setPreviousItemActive() : this.setNextItemActive();
-          break;
-        } else {
-          return;
-        }
-      case LEFT_ARROW:
-        if (this._horizontal && isModifierAllowed) {
-          this._horizontal === "rtl" ? this.setNextItemActive() : this.setPreviousItemActive();
-          break;
-        } else {
-          return;
-        }
-      case HOME:
-        if (this._homeAndEnd && isModifierAllowed) {
-          this.setFirstItemActive();
-          break;
-        } else {
-          return;
-        }
-      case END:
-        if (this._homeAndEnd && isModifierAllowed) {
-          this.setLastItemActive();
-          break;
-        } else {
-          return;
-        }
-      case PAGE_UP:
-        if (this._pageUpAndDown.enabled && isModifierAllowed) {
-          const targetIndex = this._activeItemIndex() - this._pageUpAndDown.delta;
-          this._setActiveItemByIndex(targetIndex > 0 ? targetIndex : 0, 1);
-          break;
-        } else {
-          return;
-        }
-      case PAGE_DOWN:
-        if (this._pageUpAndDown.enabled && isModifierAllowed) {
-          const targetIndex = this._activeItemIndex() + this._pageUpAndDown.delta;
-          const itemsLength = this._getItemsArray().length;
-          this._setActiveItemByIndex(targetIndex < itemsLength ? targetIndex : itemsLength - 1, -1);
-          break;
-        } else {
-          return;
-        }
-      default:
-        if (isModifierAllowed || hasModifierKey(event, "shiftKey")) {
-          this._typeahead?.handleKey(event);
-        }
-        return;
-    }
-    this._typeahead?.reset();
-    event.preventDefault();
-  }
-  get activeItemIndex() {
-    return this._activeItemIndex();
-  }
-  get activeItem() {
-    return this._activeItem();
-  }
-  isTyping() {
-    return !!this._typeahead && this._typeahead.isTyping();
-  }
-  setFirstItemActive() {
-    this._setActiveItemByIndex(0, 1);
-  }
-  setLastItemActive() {
-    this._setActiveItemByIndex(this._getItemsArray().length - 1, -1);
-  }
-  setNextItemActive() {
-    this._activeItemIndex() < 0 ? this.setFirstItemActive() : this._setActiveItemByDelta(1);
-  }
-  setPreviousItemActive() {
-    this._activeItemIndex() < 0 && this._wrap ? this.setLastItemActive() : this._setActiveItemByDelta(-1);
-  }
-  updateActiveItem(item) {
-    const itemArray = this._getItemsArray();
-    const index = typeof item === "number" ? item : itemArray.indexOf(item);
-    const activeItem = itemArray[index];
-    this._activeItem.set(activeItem == null ? null : activeItem);
-    this._activeItemIndex.set(index);
-    this._typeahead?.setCurrentSelectedItemIndex(index);
-  }
-  destroy() {
-    this._typeaheadSubscription.unsubscribe();
-    this._itemChangesSubscription?.unsubscribe();
-    this._effectRef?.destroy();
-    this._typeahead?.destroy();
-    this.tabOut.complete();
-    this.change.complete();
-  }
-  _setActiveItemByDelta(delta) {
-    this._wrap ? this._setActiveInWrapMode(delta) : this._setActiveInDefaultMode(delta);
-  }
-  _setActiveInWrapMode(delta) {
-    const items = this._getItemsArray();
-    for (let i = 1; i <= items.length; i++) {
-      const index = (this._activeItemIndex() + delta * i + items.length) % items.length;
-      const item = items[index];
-      if (!this._skipPredicateFn(item)) {
-        this.setActiveItem(index);
-        return;
-      }
-    }
-  }
-  _setActiveInDefaultMode(delta) {
-    this._setActiveItemByIndex(this._activeItemIndex() + delta, delta);
-  }
-  _setActiveItemByIndex(index, fallbackDelta) {
-    const items = this._getItemsArray();
-    if (!items[index]) {
-      return;
-    }
-    while (this._skipPredicateFn(items[index])) {
-      index += fallbackDelta;
-      if (!items[index]) {
-        return;
-      }
-    }
-    this.setActiveItem(index);
-  }
-  _getItemsArray() {
-    if (isSignal(this._items)) {
-      return this._items();
-    }
-    return this._items instanceof QueryList ? this._items.toArray() : this._items;
-  }
-  _itemsChanged(newItems) {
-    this._typeahead?.setItems(newItems);
-    const activeItem = this._activeItem();
-    if (activeItem) {
-      const newIndex = newItems.indexOf(activeItem);
-      if (newIndex > -1 && newIndex !== this._activeItemIndex()) {
-        this._activeItemIndex.set(newIndex);
-        this._typeahead?.setCurrentSelectedItemIndex(newIndex);
-      }
-    }
-  }
-};
-
-// node_modules/@angular/cdk/fesm2022/_activedescendant-key-manager-chunk.mjs
-var ActiveDescendantKeyManager = class extends ListKeyManager {
-  setActiveItem(index) {
-    if (this.activeItem) {
-      this.activeItem.setInactiveStyles();
-    }
-    super.setActiveItem(index);
-    if (this.activeItem) {
-      this.activeItem.setActiveStyles();
-    }
-  }
-};
-
-// node_modules/@angular/cdk/fesm2022/_focus-key-manager-chunk.mjs
-var FocusKeyManager = class extends ListKeyManager {
-  _origin = "program";
-  setFocusOrigin(origin) {
-    this._origin = origin;
-    return this;
-  }
-  setActiveItem(item) {
-    super.setActiveItem(item);
-    if (this.activeItem) {
-      this.activeItem.focus(this._origin);
-    }
-  }
-};
-
-// node_modules/@angular/cdk/fesm2022/_id-generator-chunk.mjs
-var counters = {};
-var _IdGenerator = class __IdGenerator {
-  _appId = inject(APP_ID);
-  static _infix = `a${Math.floor(Math.random() * 1e5).toString()}`;
-  getId(prefix, randomize = false) {
-    if (this._appId !== "ng") {
-      prefix += this._appId;
-    }
-    if (!counters.hasOwnProperty(prefix)) {
-      counters[prefix] = 0;
-    }
-    return `${prefix}${randomize ? __IdGenerator._infix + "-" : ""}${counters[prefix]++}`;
-  }
-  static ɵfac = function _IdGenerator_Factory(__ngFactoryType__) {
-    return new (__ngFactoryType__ || __IdGenerator)();
-  };
-  static ɵprov = ɵɵdefineInjectable({
-    token: __IdGenerator,
-    factory: __IdGenerator.ɵfac,
-    providedIn: "root"
-  });
-};
-(() => {
-  (typeof ngDevMode === "undefined" || ngDevMode) && setClassMetadata(_IdGenerator, [{
-    type: Injectable,
-    args: [{
-      providedIn: "root"
-    }]
-  }], null, null);
-})();
 
 // node_modules/@angular/cdk/fesm2022/coercion-private.mjs
 function coerceObservable(data) {
@@ -2419,12 +2147,46 @@ var ConfigurableFocusTrapFactory = class _ConfigurableFocusTrapFactory {
   }], () => [], null);
 })();
 
-// node_modules/@angular/cdk/fesm2022/_css-pixel-value-chunk.mjs
-function coerceCssPixelValue(value) {
-  if (value == null) {
-    return "";
+// node_modules/@angular/cdk/fesm2022/_scrolling-chunk.mjs
+var RtlScrollAxisType;
+(function(RtlScrollAxisType2) {
+  RtlScrollAxisType2[RtlScrollAxisType2["NORMAL"] = 0] = "NORMAL";
+  RtlScrollAxisType2[RtlScrollAxisType2["NEGATED"] = 1] = "NEGATED";
+  RtlScrollAxisType2[RtlScrollAxisType2["INVERTED"] = 2] = "INVERTED";
+})(RtlScrollAxisType || (RtlScrollAxisType = {}));
+
+// node_modules/@angular/cdk/fesm2022/platform.mjs
+var PlatformModule = class _PlatformModule {
+  static ɵfac = function PlatformModule_Factory(__ngFactoryType__) {
+    return new (__ngFactoryType__ || _PlatformModule)();
+  };
+  static ɵmod = ɵɵdefineNgModule({
+    type: _PlatformModule
+  });
+  static ɵinj = ɵɵdefineInjector({});
+};
+(() => {
+  (typeof ngDevMode === "undefined" || ngDevMode) && setClassMetadata(PlatformModule, [{
+    type: NgModule,
+    args: [{}]
+  }], null, null);
+})();
+var supportedInputTypes;
+var candidateInputTypes = ["color", "button", "checkbox", "date", "datetime-local", "email", "file", "hidden", "image", "month", "number", "password", "radio", "range", "reset", "search", "submit", "tel", "text", "time", "url", "week"];
+function getSupportedInputTypes() {
+  if (supportedInputTypes) {
+    return supportedInputTypes;
   }
-  return typeof value === "string" ? value : `${value}px`;
+  if (typeof document !== "object" || !document) {
+    supportedInputTypes = new Set(candidateInputTypes);
+    return supportedInputTypes;
+  }
+  let featureTestInput = document.createElement("input");
+  supportedInputTypes = new Set(candidateInputTypes.filter((value) => {
+    featureTestInput.setAttribute("type", value);
+    return featureTestInput.type === value;
+  }));
+  return supportedInputTypes;
 }
 
 // node_modules/@angular/cdk/fesm2022/coercion.mjs
@@ -2435,27 +2197,12 @@ function coerceBooleanProperty(value) {
 export {
   isFakeMousedownFromScreenReader,
   isFakeTouchstartFromScreenReader,
-  BACKSPACE,
-  TAB,
-  ENTER,
-  ESCAPE,
-  SPACE,
-  LEFT_ARROW,
-  UP_ARROW,
-  RIGHT_ARROW,
-  DOWN_ARROW,
-  DELETE,
-  A,
+  _getEventTarget,
+  normalizePassiveListenerOptions,
   FocusMonitor,
   ObserversModule,
-  LiveAnnouncer,
-  hasModifierKey,
-  ActiveDescendantKeyManager,
-  FocusKeyManager,
   _IdGenerator,
-  addAriaReferencedId,
-  removeAriaReferencedId,
-  coerceCssPixelValue,
+  getSupportedInputTypes,
   coerceBooleanProperty
 };
-//# sourceMappingURL=chunk-CSAGQ6XA.js.map
+//# sourceMappingURL=chunk-U6BPWAK5.js.map
