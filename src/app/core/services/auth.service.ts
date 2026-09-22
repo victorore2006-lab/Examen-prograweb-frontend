@@ -2,9 +2,14 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
 import { Observable, tap } from 'rxjs';
 
-const API_URL = 'http://localhost:5236/api';
+const API_URL = 'http://localhost:7236/api';
 const TOKEN_KEY = 'taskflow_token';
 
+export interface RegisterPayload {
+  fullName: string;
+  email: string;
+  password: string;
+}
 
 export interface LoginPayload {
     email: string;
@@ -21,6 +26,9 @@ export class AuthService {
 
     isLoggedIn = signal<boolean>(this.hasToken());
 
+    register(payload: RegisterPayload): Observable<unknown> {
+    return this.http.post(`${API_URL}/Auth/register`, payload);
+  }
 
     login(payload: LoginPayload): Observable<LoginResponse> {
         return this.http.post<LoginResponse>(`${API_URL}/Auth/login`, payload).pipe(
