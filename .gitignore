@@ -1,0 +1,14 @@
+# Dependencias
+/node_modules
+
+# Build
+/dist
+/out-tsc
+
+# IDE
+.vscode/
+.idea/
+
+# Misc
+*.log
+.DS_Store
